@@ -57,5 +57,5 @@ directory for these times** (with a user disk there, no prompt, and the
 times move); presses of 6 frames move the menus one place.
 `tools/framematch.py` (frames against snapshots), `tools/wavmatch.py`,
 `tools/wavbands.py`, `tools/fps.py`. Python that holds a backslash goes in
-a file written whole, never in a shell heredoc; run the tools with
-`C:/Python314/python.exe`.
+a file written whole, never in a shell heredoc; run the tools with a
+Python that has PIL and numpy (MSYS2's own comes first on its PATH).

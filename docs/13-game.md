@@ -27,7 +27,7 @@ move it one place on both.
 
 The opponents' screen reads the Towns' font ROM at 0xC2100000 on (MAME's
 `fmtowns` set's `fmt_fnt.rom`, BYOA in `bios/fmtowns/`, the first game's;
-the retrobios `FMT_FNT.ROM` differs from it): without it, the cards have
+another dump's `FMT_FNT.ROM` differs from it): without it, the cards have
 no text.
 
 ## A race
