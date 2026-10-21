@@ -1,0 +1,3 @@
+[submodule "fmtownskit"]
+	path = fmtownskit
+	url = ../fmtownskit

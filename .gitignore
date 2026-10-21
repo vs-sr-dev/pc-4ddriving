@@ -1,0 +1,23 @@
+# BYOA: no content from the original disc, the system software or the ROMs enters the repo.
+build/
+disc/
+bios/
+*.7z
+*.cue
+*.bin
+*.BIN
+*.iso
+*.img
+*.IMG
+*.chd
+*.EXP
+*.EXE
+*.SYS
+*.NSD
+*.ROM
+*.zip
+*.wav
+*.png
+__pycache__/
+*.pyc
+PROMPT-*.md
