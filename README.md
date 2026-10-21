@@ -6,11 +6,28 @@ static recompilation of its 386 code to C++ on fmtownskit (a submodule at
 `fmtownskit/`; `git clone --recursive`). **BYOA**: nothing from the disc
 is in this repository; you bring your own.
 
-Status: **session 2** -- the disc identified and read, the program mapped
-by its own symbol table (1,273 functions, discovery clean), and the machine
-chosen: a "Marty only" title that MAME's FM Towns runs as the Marty does once
-it has 4 MB (the 2 MB Towns runs out of memory), with the disc's own TBIOS.
-Nothing runs yet.
+Status: **session 3** -- the game's code and TBIOS's recompiled and running
+on fmtownskit's runtime, from the first instruction through the user-disk
+prompt, Electronic Arts' logo, the title and the credits, every picture held
+against the oracle (MAME's FM Towns with 4 MB) the same, pixel for pixel.
+Silent, and not yet played: the sound and the game itself are next.
+
+## Building
+
+```sh
+python -m fmtownskit.disc "disc/4D Driving (Japan) (FM Towns Marty Rerelease).cue" --extract build/disc
+python -m fmtownskit.recomp --out build/game \
+    --exp game=build/disc/4DDFMT.EXP@0c/3a650+20518,35018,3516c,35340,35474,35866,35a3c,37a58 \
+    --raw tbios=build/disc/TBIOS.BIN@110:20-1e0+166a7,169d0,16ab0,16ae9,16aec,16afc,16b64
+cmake -S . -B build/rt -G Ninja -DCMAKE_CXX_COMPILER=clang++
+ninja -C build/rt
+build/rt/4ddriving                                     # in a window (SDL3), or:
+build/rt/4ddriving --headless --frames 3600 --png-every 60 --input 100-118:a,400-418:a
+```
+
+The runtime finds the disc's cue sheet in `disc/` (`--cue` for another).
+`docs/09-recompiler.md` and `docs/11-runtime.md` have what each step was
+checked against.
 
 ## The disc
 
@@ -30,6 +47,8 @@ python tools/oracle.py --at 20-70/2 --input 22-22.3:A,28-28.3:A   # MAME, CHDMAN
 python tools/oracle.py --machine fmtmarty --at 20-70/2 --input 22-22.3:A,28-28.3:A
 python tools/oracle.py --dump 20 --ram 0x400000                    # CPU state and RAM, for fmtownskit.mamedump
 python tools/oracle.py --at 16 --trace-calls windowdef,EGB_init    # the program's calls, by MAME's debugger
+python tools/intlog.py build/oracle/.../calls.txt                   # a trace of int sites, paired into calls
+python tools/framematch.py build/oracle/cmp/fmtowns build/frames --at 16,18,20,22   # frames against the oracle
 ```
 
 The oracle runs MAME's `fmtowns` with 4 MB by default (`--machine fmtmarty`
@@ -40,7 +59,8 @@ for the Marty); the game first asks to make a user disk in drive A:, and
 
 `docs/00-sessions.md` (the log), `01-disc-layout.md`, `02-data-formats.md`,
 `03-executables.md`, `04-curiosities.md`, `05-open-questions.md`,
-`06-attack-plan.md`, `07-next-session.md`, `10-fmtownskit.md`.
+`06-attack-plan.md`, `07-next-session.md`, `09-recompiler.md`,
+`10-fmtownskit.md`, `11-runtime.md`.
 
 ## Licence
 

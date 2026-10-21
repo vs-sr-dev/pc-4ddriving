@@ -60,15 +60,15 @@ the top).
 
 ## The road
 
-1. **The start, read on the oracle**: `--dump-write` at the program's first
+1. **The start, read on the oracle** (done, session 3): `--dump-write` at the program's first
    instruction on the 4 MB Towns (the registers RUN386 hands over, the
    descriptors, TBIOS as it lies in memory); the CRTC and video registers
    once the title is up (`ports.txt`).
-2. **Recompile**: the game with its symbol seeds, the disc's TBIOS, the
+2. **Recompile** (done, session 3): the game with its symbol seeds, the disc's TBIOS, the
    self-test vectors in slices (the interpreter's check on 55,000
    instructions ran out of memory in one go). The kit's recompiler takes the
    symbols for seeds and for function names in the C++.
-3. **The runtime, headless**: the port's profile (`towns4m+nsd`); int 90h (the
+3. **The runtime, headless** (session 3: to the credits, pixel for pixel; the timer A interrupt and the sound to come): the port's profile (`towns4m+nsd`); int 90h (the
    keyboard and pad as `KYB_*` call it), int 8Eh (KimG), the CD BIOS's 53h,
    55h, 56h; Phar Lap 2506h/2507h; TBIOS's warikomi and System modules'
    effects (the timer A interrupt for `SND_*`); the video modes 10, 12, 13,

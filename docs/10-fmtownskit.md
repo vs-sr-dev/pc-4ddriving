@@ -44,3 +44,20 @@ Checked: the first game, built on the changed runtime, against its oracle's 15
 stills: all the same, pixel for pixel, as before.
 
 The kit's commit **9c1ccd3**, pulled into the submodule at the session's end.
+
+## Session 3
+
+| Change | What this game asked of it |
+|---|---|
+| `recomp.discover` | **tables placed after their jump**, `jmp cs:[reg + table]` with the index already scaled (hand-written drawing code): read past the jump, inside the same symbol's code (with no symbols: through CS), to where the first code they jump to begins, as tables with no bound (cut short by conflicts as the others). 19 such tables here, 0 conflicts; none in TBIOS |
+| `recomp` (`__main__`, `emit`) | `--exp NAME=FILE@CS/END`: every symbol below END a seed; **the symbols name the C++** (a comment over each function and label, beside each prototype) |
+| `recomp.selftest`, `recomp` | each function's vectors from its own seed (its address): `--slice LO-HI` and `--jobs N` give the same vectors as one run. The optest's and the first game's vector counts change with it (23,525 vectors there, 0 failures) |
+| `recomp.emit`, `runtime/x86.h`, `towns_cpu` | `lsl` (`x86_lsl`: the machine's descriptors) and `arpl` (arithmetic), for MetaWare's start |
+| `runtime/towns_dos` | DOS 30h (DOS 3.10 and RUN386's "DX"), 44h AL=00h (a handle's device word), FFh (nothing, as RUN386); Phar Lap 2502h-2505h, 2507h (the vectors, got and set); **int 90h** (the keyboard BIOS: no key, the matrix empty) and **int 8Eh** AX=CF00h (KimG), as FORRBIOS.NSD answers them; the CD BIOS **raised in protected mode** (its buffer at DS:EDI; `int93` takes a linear buffer), and its 53h, 55h, 56h |
+| `runtime/towns_io` | **the mouse in the second port**, as MAME's fmtowns has it (an MSX mouse: a nibble of the movement per strobe on 0x4D6 bit 5, a pause of 3 ms starting over) |
+
+Checked: this game's start to the credits, 26 oracle snapshots the same
+pixel for pixel; the first game regenerated (its C++ byte for byte the same)
+and run on the changed runtime: its 14 stills the same, pixel for pixel.
+
+The kit's commit **959818b**, pulled into the submodule at the session's end.

@@ -69,3 +69,35 @@ The repository put under git, fmtownskit a submodule at a33c4f2 (the session's k
   runs under 0x0C: `ADDDRV.EXP` comes first).
 
 fmtownskit at 9c1ccd3 (the submodule pulled at the session's end).
+
+## Session 3 (2026-10-21): the start, recompiled
+
+* **The start read on the oracle** (`11-runtime.md`): MAME's `fmtowns
+  -ramsize 4M` stopped at the program's first `call`, 14.793 seconds after
+  power-on: the registers RUN386 hands over, the image and TBIOS in RAM the
+  files' byte for byte, the profile `towns4m+nsd` confirmed; the PSP and
+  the environment, the CRTC register, video register and palette values
+  this disc's boot leaves, not the first game's.
+* **The program recompiled** (`09-recompiler.md`): its symbols as seeds and
+  as the C++'s names; the drawing routines' tables placed after their jumps
+  read by discovery; eight code addresses passed as immediates, and TBIOS's
+  warikomi and System modules (its table runs to 0x1E0) with their own
+  handlers, as seeds; `lsl` and `arpl` for MetaWare's start. 66 C++ files,
+  built in 27 seconds; the self-test's vectors made in parallel, **56,974
+  replayed, 0 failures**.
+* **What the program asks, read call by call on the oracle**
+  (`tools/oracle.py --trace-calls` at every `int` and after it,
+  `tools/intlog.py`), and answered by the runtime: DOS 30h, 44h, FFh; Phar
+  Lap 2502h-2507h; FORRBIOS.NSD's int 90h, int 8Eh and int 93h in protected
+  mode (53h-56h).
+* **The mouse in MAME's second port**: the one pixel pair that differed was
+  *Stunts*' own mouse pointer; the kit's machine now has MAME's mouse.
+* **The goal: the user-disk prompt the same as the oracle's, pixel for
+  pixel**, and beyond it, answered NO twice: Electronic Arts' logo, the
+  *4D Driving* logo turning, the title, the credits -- 26 snapshots of 26
+  the same, pixel for pixel, sooner than on the oracle (the loads take no
+  time). 60 seconds of the game in 0.58 seconds.
+* The first game on the changed kit: its C++ byte for byte the same, its
+  14 stills the same, pixel for pixel.
+
+fmtownskit at 959818b (the session's kit commit, pulled into the submodule).

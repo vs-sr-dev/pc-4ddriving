@@ -202,30 +202,49 @@ end)
 # Calls into the program's functions, logged by MAME's debugger with no window (-debug
 # -debugger none): once the program runs (CS 0x0C), a breakpoint at each function, which
 # prints the registers, the return address and four arguments from the stack, then goes on.
-# The console's lines go to calls.txt at the last --at. Offsets are the program's (its code
+# The console's lines go to calls.txt as they come, frame by frame. Offsets are the program's (its code
 # segment's base added at run time, whatever the machine's RAM puts it at).
 TRACE_LUA = """local trace = {%s}
 local cpu = manager.machine.devices[":maincpu"]
 local dbg = manager.machine.debugger
-local armed, bps, last = nil, {}, %g
+local armed, last, lastline = {}, %g, nil
+io.open("calls.txt", "w"):close()
 emu.register_frame_done(function()
-    if cpu.state["CS"].value == 0x0c and cpu.state["CSBASE"].value ~= armed then
-        -- another program under 0x0C (RUN386 runs ADDDRV.EXP first): arm again at its base
-        armed = cpu.state["CSBASE"].value
-        for _, b in ipairs(bps) do cpu.debug:bpclear(b) end
-        bps = {}
-        dbg:command("printf \\"trace: a program at 0x%%x\\"," .. string.format("%%x", armed))
-        for _, t in ipairs(trace) do
-            bps[#bps + 1] = cpu.debug:bpset(armed + t[1], "1", string.format('printf "%%s t=%%%%d eax=%%%%x ebx=%%%%x ecx=%%%%x edx=%%%%x esi=%%%%x edi=%%%%x ret=%%%%x args %%%%x %%%%x %%%%x %%%%x",frame,eax,ebx,ecx,edx,esi,edi,d@(ssbase+esp),d@(ssbase+esp+4),d@(ssbase+esp+8),d@(ssbase+esp+12),d@(ssbase+esp+16); g', t[2]))
+    -- the console's new lines, each frame (at the machine's stop the log is gone, and it keeps
+    -- a few thousand lines: new ones are those after the last line written)
+    local log = dbg.consolelog
+    local from = 1
+    if lastline then
+        for k = #log, 1, -1 do
+            if log[k] == lastline then from = k + 1 break end
         end
     end
-    if manager.machine.time:as_double() >= last then
-        local f = io.open("calls.txt", "w")
-        for _, l in ipairs(dbg.consolelog) do f:write(l, "\\n") end
+    if from <= #log then
+        local f = io.open("calls.txt", "a")
+        for k = from, #log do f:write(log[k], "\\n") end
         f:close()
+        lastline = log[#log]
+    end
+    if cpu.state["CS"].value == 0x0c then
+        -- another program under 0x0C (RUN386 runs ADDDRV.EXP first): arm at its base too
+        arm(cpu.state["CSBASE"].value)
     end
 end)
 """
+# Armed from the start at the base RUN386 gives the program on this machine (towns.PROFILES),
+# so that its first calls are seen: a base met only at a frame's end comes after them.
+TRACE_ARM_LUA = """
+function arm(base)
+    if armed[base] then return end
+    armed[base] = true
+    dbg:command("printf \\"trace: armed at 0x%%x\\"," .. string.format("%%x", base))
+    for _, t in ipairs(trace) do
+        cpu.debug:bpset(base + t[1], "1", string.format('printf "%%s t=%%%%d eax=%%%%x ebx=%%%%x ecx=%%%%x edx=%%%%x esi=%%%%x edi=%%%%x ret=%%%%x args %%%%x %%%%x %%%%x %%%%x",frame,eax,ebx,ecx,edx,esi,edi,d@(ssbase+esp),d@(ssbase+esp+4),d@(ssbase+esp+8),d@(ssbase+esp+12),d@(ssbase+esp+16); g', t[2]))
+    end
+end
+arm(0x%x)
+"""
+PROG_BASE = {'4M': 0x408000}
 
 
 def trace_targets(spec, exp_path):
@@ -289,7 +308,8 @@ def main():
     ap.add_argument('--dump-write', metavar='ADDR=VALUE',
                     help='instead of snapshots: state.txt and ram.bin at the first write of VALUE to '
                          'physical ADDR (hex; a dword), in protected mode with paging on')
-    ap.add_argument('--ram', type=lambda x: int(x, 0), default=0x200000, help='bytes of RAM to dump')
+    ap.add_argument('--ram', type=lambda x: int(x, 0),
+                    help="bytes of RAM to dump (default: the machine's RAM, -ramsize's or 2 MB)")
     ap.add_argument('--wav', metavar='FILE', help="MAME's sound output to FILE (-wavwrite, 48 kHz) up to the last --at")
     ap.add_argument('--sound-log', action='store_true',
                     help='every write to ports 0x4C0-0x4FF and to the wave RAM, timed, to sound.log '
@@ -306,6 +326,9 @@ def main():
                     help="player 1's pad held over spans of seconds, e.g. 25-25.2:A,30-31:Right+B "
                          '(A B Run Select Zoom Up Down Left Right)')
     a = ap.parse_args()
+    ramsize = a.ramsize or ('4M' if a.machine == 'fmtowns' else None)
+    if a.ram is None:
+        a.ram = int(ramsize[:-1]) << 20 if ramsize and ramsize.upper().endswith('M') else 0x200000
     if a.dump_write:
         wa, _, wv = a.dump_write.partition('=')
         a.dump_write = (int(wa, 16), int(wv, 16))
@@ -347,6 +370,7 @@ def main():
         if a.trace_calls:
             tl = trace_targets(a.trace_calls, os.path.join(ROOT, 'build', 'disc', '4DDFMT.EXP'))
             f.write(TRACE_LUA % (', '.join('{0x%x, "%s"}' % t for t in tl), ts[-1]))
+            f.write(TRACE_ARM_LUA % PROG_BASE.get(ramsize, 0x200000))
         for extra in a.lua:
             with open(extra) as g:
                 f.write('\n' + g.read())
@@ -357,7 +381,6 @@ def main():
            '-autoboot_script', lua]
     if a.trace_calls:
         cmd += ['-debug', '-debugger', 'none']
-    ramsize = a.ramsize or ('4M' if a.machine == 'fmtowns' else None)
     if ramsize:
         cmd += ['-ramsize', ramsize]
     if a.wav:
