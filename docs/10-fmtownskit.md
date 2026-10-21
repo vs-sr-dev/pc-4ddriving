@@ -32,3 +32,15 @@ its ten known answers, 10 of 10. The recompiler on the first game and its
 TBIOS: the C++ byte for byte what the kit at be56af1 writes; the optest, with
 116 escape forms more, 7,652 functions and 22,909 vectors, built with clang
 and replayed: 0 failures.
+
+## Session 2
+
+| Change | What this game asked of it |
+|---|---|
+| `runtime/towns.h` `Profile`, `towns_mem`, `towns_dos`, `towns_io` | **a machine profile as data**: the RAM size (port 0x5E8), the program's segment (linear base, physical, its limit when the P3 asks for all memory), selector 0x40's limit. `boot_run386`, Phar Lap 250Fh and port 0x5E8 read it. The kit ships `kTowns2M`, read under the first game; a program asking for all memory under a profile that has not read how much is refused. This game asks for all memory, and on MAME's 2 MB Towns runs out of it: its port runs a 4 MB Towns |
+| `towns.PROFILES` | the profiles read so far, with where: `towns2m` (the first game), `towns2m+nsd`, `towns4m+nsd`, `marty2m+nsd` (this game's boot, `FORRBIOS.NSD` keeping the top 32 KB) |
+
+Checked: the first game, built on the changed runtime, against its oracle's 15
+stills: all the same, pixel for pixel, as before.
+
+The kit's commit **9c1ccd3**, pulled into the submodule at the session's end.

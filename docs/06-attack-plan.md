@@ -27,52 +27,59 @@ What is new, and why the shape still holds:
   KimG and CD BIOS interrupts in protected mode. The runtime answers those
   interrupts itself, as it already answers int 93h for the first game, and
   the NSD is recompiled only if its behaviour turns out to matter.
-* **The Marty is the machine, this time.** The runtime's machine data
-  (the RAM size, the machine id, the CRTC's timings) are the Marty's where
-  the oracle is the Marty; the program sees the same selectors on both
-  (the first game's session 2), with a larger segment (all memory).
+* **The machine is data.** The program sees the same selectors on the
+  Towns and the Marty (the first game's session 2), with a segment as large
+  as the RAM allows (all memory asked): which machine and how much RAM is a
+  profile, below. (Session 1 had planned on the Marty; session 2 chose the
+  4 MB Towns.)
 
-## The decision the next session makes: which TBIOS
+## The machine: the FM Towns with 4 MB, the disc's TBIOS (decided in session 2)
 
-On the Marty, the TBIOS is the Marty ROM's build; on the Towns, the disc's
-`TBIOS.BIN`, and with the disc's the game shows nothing on MAME's first
-Towns (`05-open-questions.md` 1). Two roads:
+Session 2 found that the game is "Marty only" in MAME by memory, not by
+hardware (`05-open-questions.md` 1), and that the disc's TBIOS draws what the
+Marty ROM's does (`03-executables.md`). The user chose, of three roads:
 
-1. **The disc's TBIOS, with the Marty's machine under it** (the machine
-   id, if that is what its graphic module reads to allow modes 10, 12, 13,
-   15). No ROM needed (the kit's "Towns path"). Possible only if the disc's
-   build sets those modes at all.
-2. **The Marty ROM's TBIOS**, recompiled from `MAR_EX1.ROM` (at 0x19C00, the
-   first game's session 2), which the user provides as they provide the disc
-   (BYOA, as the other kits take a BIOS). Exactly what the oracle runs.
+* **taken: the FM Towns with 4 MB, the disc's `TBIOS.BIN`** -- the first
+  game's "Towns path", no ROM to bring. The oracle is MAME's `fmtowns
+  -ramsize 4M` (`tools/oracle.py`'s default), which runs the very TBIOS the
+  runtime runs, so frames can match pixel for pixel; `fmtmarty` stays as
+  the cross-check (its stills are the same). Left out: the Marty's TV zoom
+  and its pad-as-mouse.
+* not taken: the Marty with its ROM's TBIOS and extension (`MAR_EX1.ROM`,
+  BYOA), recompiled -- the target machine exactly, more work, a ROM to bring;
+* not taken now: both, as profiles; the Marty's can come later if the zoom
+  or the pad-as-mouse is wanted.
 
-To read first: the graphic module's AH=01h (resolution) in both builds, and
-what the Marty ROM's wrappers add. The choice goes to the user with the
-evidence.
+The kit's side: **a machine profile as data** (`runtime/towns.h` `Profile`,
+`towns.PROFILES`): the RAM size, where RUN386 puts the program's segment and
+how large when the P3 asks for all memory, selector 0x40's limit. The kit
+ships the profile it read under the first game; this port declares its own,
+read from its dumps: `towns4m+nsd` -- 4 MB, the program at 0x408000
+(physical 0x49000), limit 0x368FFF, selector 0x40 to 0x3F7FFF (the NSD at
+the top).
 
 ## The road
 
 1. **The start, read on the oracle**: `--dump-write` at the program's first
-   instruction on `fmtmarty` (the registers RUN386 hands over, the
-   descriptors, the segment's limit, TBIOS as it lies in memory); the
-   TBIOS question above; the CRTC and video registers once the title is
-   up (`ports.txt`).
-2. **Recompile**: the game with its symbol seeds, TBIOS (the disc's or the
-   ROM's), the self-test vectors in slices (the interpreter's check on
-   55,000 instructions ran out of memory in one go). The kit's recompiler
-   takes the symbols for seeds and for function names in the C++.
-3. **The runtime, headless**: the Marty's machine data; int 90h (the
+   instruction on the 4 MB Towns (the registers RUN386 hands over, the
+   descriptors, TBIOS as it lies in memory); the CRTC and video registers
+   once the title is up (`ports.txt`).
+2. **Recompile**: the game with its symbol seeds, the disc's TBIOS, the
+   self-test vectors in slices (the interpreter's check on 55,000
+   instructions ran out of memory in one go). The kit's recompiler takes the
+   symbols for seeds and for function names in the C++.
+3. **The runtime, headless**: the port's profile (`towns4m+nsd`); int 90h (the
    keyboard and pad as `KYB_*` call it), int 8Eh (KimG), the CD BIOS's 53h,
    55h, 56h; Phar Lap 2506h/2507h; TBIOS's warikomi and System modules'
    effects (the timer A interrupt for `SND_*`); the video modes 10, 12, 13,
-   15. Frames against the oracle's: the Marty logo is the ROM's, so the
-   first frames to match are the user-disk prompt (20 s), Electronic Arts'
-   logo (32 s), the title (46 s), the credits (68 s).
+   15. Frames against the oracle's (`fmtowns -ramsize 4M`): the user-disk
+   prompt (22 s), Electronic Arts' logo (30-34 s), the title (46 s), the
+   credits (70 s).
 4. **The sound**: the kit's RF5C68 and YM3438 (the engine's PCM, `STUNTS.PMB`,
    `STUNTS.SLB`) and the CD-DA loops, against the oracle's `--sound-log`.
-5. **The window and the pad**: the kit's SDL3 window; the Marty pad (A, B,
-   Run, Select, Zoom as MAME's martypad wires them); the steering as the
-   game reads it.
+5. **The window and the pad**: the kit's SDL3 window; the Towns pad as the
+   first game's (the game reads it through TBIOS's sound module, AH=40h);
+   the steering as the game reads it.
 6. **Playable**: a race, the replay, the track editor; the user disk on the
    host; then publication at the user's word, with the kit and the first
    game.
@@ -85,20 +92,20 @@ evidence.
 | tables bounded by symbols, symbols as seeds and names | `x86map`, `recomp.discover` (done); the emitter's function names (next) |
 | the x87's escapes on a machine with none | `i386`, `i386emu`, `recomp.emit` (done) |
 | the ports this game reads (0x24, 0x26, 0x5EC, 0xFDA0, the CMOS) | `towns` (named, done); the runtime (next) |
-| the Marty as a runtime machine: its id, RAM, the CRTC modes | `runtime/towns*` |
+| a machine profile as data: RAM, the program's segment, selector 0x40 | `runtime/towns.h`, `towns.PROFILES` (session 2) |
+| the CRTC set-ups of modes 10, 12, 13, 15 | `runtime/towns_video` |
 | int 90h, 8Eh, the CD BIOS's 53h/55h/56h | `runtime/towns_dos` |
 | TBIOS's warikomi and System modules | recompiled with TBIOS; their machine effects in the runtime |
-| possibly: a TBIOS from the Marty ROM | the recompiler's `--raw` from a ROM file, the runtime's load |
 
 ## The risks
 
-* **The TBIOS question** above: if neither road is clean, a third is to
-  answer the graphic module's resolution call in the runtime.
 * **Size and speed of the emitted C++**: 67,000 instructions at the first
   game's rate of C++ per instruction is a large build; splitting per
   function and clang's time to be measured.
 * **The drawing routines**: hand-written, with inline jump tables and
   shared tails: discovery must read their tables (`cs:[ebx + table]`, the
   index pre-scaled) or the runtime will meet them one by one.
-* **Timing**: a racing game's pace is its frame loop's; the Marty's 386SX
-  speed is the oracle's. `fmtspeed` hints that the game cares.
+* **Timing**: a racing game's pace is its frame loop's; the oracle's 386DX
+  at 16 MHz (`fmtowns`) is faster than the Marty's 386SX, and the game cares
+  (`fmtspeed`): the pace to play at is the Marty's, the pace to compare at
+  the oracle's.

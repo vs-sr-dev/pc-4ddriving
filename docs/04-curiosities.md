@@ -9,8 +9,9 @@
   for free; this one does, and its discovery takes them as seeds.
 * **A Marty rerelease that the first Towns will not show.** Four months
   after the Towns release (HMD-222, 1993-03), Electronic Arts Victor put out
-  HMD-222A for the Marty (1993-07). On MAME's first Towns it runs, waits at
-  its first question, and shows nothing (`01-disc-layout.md`).
+  HMD-222A for the Marty (1993-07). On MAME's first Towns with 2 MB it runs
+  out of memory 74 bytes short of a window's row table and shows nothing;
+  with 4 MB it runs as on the Marty (`01-disc-layout.md`).
 * **The user disk.** The Marty has a floppy drive and no hard disk: the game
   asks to make a "user disk" in A: for the tracks you build in the editor,
   the high scores and the replays, and asks again when you say no.

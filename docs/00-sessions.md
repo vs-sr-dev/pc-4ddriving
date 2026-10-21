@@ -39,3 +39,33 @@
   session's to settle.
 
 The repository put under git, fmtownskit a submodule at a33c4f2 (the session's kit commit, on be56af1).
+
+## Session 2 (2026-10-21): why "Marty only"; the machine chosen
+
+* **The black Towns explained: memory.** MAME's debugger, driven from Lua
+  with no window (`tools/oracle.py --trace-calls`), followed TBIOS's graphic
+  calls and the game's: screen mode 13 is set on both machines; then on the
+  2 MB Towns `windowdef` gets NULL from a 74-byte `malloc` and
+  `abortmessage("windowdef - OUT OF ROW TABLE SPACE")` resets the screen and
+  waits for a key. RUN386 leaves the program 1,482,752 bytes there, 1,593,344
+  on the Marty. **With 4 MB the Towns runs the game as the Marty does, with
+  the disc's TBIOS**: 13 of 15 stills the same pixel for pixel, the other
+  two an animation frame and a blinking cursor (`01-disc-layout.md`,
+  `03-executables.md`).
+* **The Marty's TBIOS read** against the disc's: its ROM (`MAR_EX1.ROM`)
+  holds the same version and an extension that wraps the graphic and mouse
+  entries; the graphic module is byte for byte the disc's, the mouse module
+  rewritten, the wrapper adds what *inferred* is the TV zoom (port 0x3BB0).
+  The game reads the pad through the sound module, the same in both.
+* **The machine chosen** (the user's choice): the FM Towns with 4 MB and the
+  disc's TBIOS, no ROM; the oracle `fmtowns -ramsize 4M`, `fmtmarty` the
+  cross-check (`06-attack-plan.md`).
+* **fmtownskit**: a machine profile as data -- the RAM, where RUN386 puts a
+  program asking for all memory, selector 0x40 -- in `runtime/towns.h` and
+  `towns.PROFILES`, the first game's the default (its 15 stills still the
+  same pixel for pixel) (`10-fmtownskit.md`).
+* **The oracle**: `fmtowns` with 4 MB by default, `--ramsize`, and
+  `--trace-calls` (breakpoints by symbol, re-armed for each program RUN386
+  runs under 0x0C: `ADDDRV.EXP` comes first).
+
+fmtownskit at 9c1ccd3 (the submodule pulled at the session's end).

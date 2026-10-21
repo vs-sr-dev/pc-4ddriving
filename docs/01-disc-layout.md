@@ -20,7 +20,8 @@ CHD that `tools/oracle.py` makes from the cue sheet has the list's SHA-1
 
 ### Towns or Marty?
 
-This time the disc is a **Marty title**, and the oracle agrees:
+This time the disc is a **Marty title** -- by memory, it turns out, not by
+the machine's hardware:
 
 * MAME's list has two entries: `4ddrivin` (HMD-222 / EFT-7002, 1993-03,
   "Requires 2 MB RAM") and its clone `4ddrivinm` (this disc, 1993-07, "Only
@@ -32,13 +33,21 @@ This time the disc is a **Marty title**, and the oracle agrees:
   DISK?" at 20 s; answered NO twice, it shows Electronic Arts' logo (32 s),
   the helmet, the title (46 s), the car and the original team's credits
   (68 s) (`tools/oracle.py --at 22-70/2 --input 22-22.3:A,28-28.3:A`).
-* On MAME's `fmtowns` (the first model, a 386DX) it loads the system
-  (the Towns' logo and "システム読み込み中です" at 10 s), switches to a
-  704x525 mode at 16 s and stays **black** to the end of the run (70 s),
-  with the same two presses. It is not hung: from 20 to 40 s the program
-  runs its keyboard polling (`normkey`, `KYB_read`, `testkey`, by a
-  per-frame histogram of CS:EIP), *inferred*: waiting at a prompt it drew
-  where the Towns does not show it. Why is `05-open-questions.md` 1.
+* On MAME's `fmtowns` (the first model, a 386DX, **2 MB** as MAME has it)
+  it loads the system (the Towns' logo and "システム読み込み中です" at
+  10 s), switches to a 704x525 mode at 16 s and stays **black** to the end
+  of the run (70 s), polling the keyboard. Session 2 found why: **memory**.
+  At 14.4 s `windowdef("MCGA WINDOW")` gets NULL from a `malloc` of 74
+  bytes and calls `abortmessage("windowdef - OUT OF ROW TABLE SPACE")`,
+  which sets the screen back up for its message and waits for a key
+  (`03-executables.md`). RUN386 leaves the program 1,482,752 bytes there,
+  1,593,344 on the Marty.
+* On `fmtowns` with **4 MB** (`-ramsize 4M`) it runs as on the Marty, with
+  the disc's own TBIOS: the user-disk prompt, Electronic Arts' logo, the
+  title, the credits -- every still that both runs caught, **the same pixel
+  for pixel** (13 of 15; the other two an animation frame one run did not
+  catch, and 4 pixels of the prompt's blinking cursor). This is the port's
+  oracle (`06-attack-plan.md`).
 
 The prompt is about the **user disk**: the game keeps its tracks, high
 scores and replays on a floppy in drive A: (`a:track.dat`, `a:default.hig`,

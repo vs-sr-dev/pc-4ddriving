@@ -6,9 +6,13 @@ sheet, and a Lua script that saves a snapshot at each time asked for, in
 emulated seconds, then quits. A contact sheet of the snapshots is written
 next to them.
 
-    python tools/oracle.py --machine fmtmarty --at 5-120/5
-    python tools/oracle.py --machine fmtowns  --at 30,60,90 --out build/oracle/towns
-    python tools/oracle.py --at 22,26,30 --input 24-24.2:A        # the pad, held
+    python tools/oracle.py --at 5-120/5                          # fmtowns with 4 MB
+    python tools/oracle.py --machine fmtmarty --at 30,60,90       # the Marty, its own 2 MB
+    python tools/oracle.py --at 20-70/2 --input 22-22.3:A,28-28.3:A   # the pad, held (NO twice)
+
+The port's machine is the FM Towns with 4 MB running the disc's TBIOS (docs/06): MAME's
+fmtowns with its 2 MB leaves the program too little memory (docs/05), so --ramsize defaults
+to 4M on fmtowns and to the machine's own size elsewhere.
 
 Environment: MAME (mame.exe; default: `mame` on PATH), CHDMAN (likewise),
 FMT_ROMS (a directory with fmtowns.zip / fmtmarty.zip; default bios/).
@@ -195,6 +199,53 @@ emu.register_frame_done(function()
 end)
 """
 
+# Calls into the program's functions, logged by MAME's debugger with no window (-debug
+# -debugger none): once the program runs (CS 0x0C), a breakpoint at each function, which
+# prints the registers, the return address and four arguments from the stack, then goes on.
+# The console's lines go to calls.txt at the last --at. Offsets are the program's (its code
+# segment's base added at run time, whatever the machine's RAM puts it at).
+TRACE_LUA = """local trace = {%s}
+local cpu = manager.machine.devices[":maincpu"]
+local dbg = manager.machine.debugger
+local armed, bps, last = nil, {}, %g
+emu.register_frame_done(function()
+    if cpu.state["CS"].value == 0x0c and cpu.state["CSBASE"].value ~= armed then
+        -- another program under 0x0C (RUN386 runs ADDDRV.EXP first): arm again at its base
+        armed = cpu.state["CSBASE"].value
+        for _, b in ipairs(bps) do cpu.debug:bpclear(b) end
+        bps = {}
+        dbg:command("printf \\"trace: a program at 0x%%x\\"," .. string.format("%%x", armed))
+        for _, t in ipairs(trace) do
+            bps[#bps + 1] = cpu.debug:bpset(armed + t[1], "1", string.format('printf "%%s t=%%%%d eax=%%%%x ebx=%%%%x ecx=%%%%x edx=%%%%x esi=%%%%x edi=%%%%x ret=%%%%x args %%%%x %%%%x %%%%x %%%%x",frame,eax,ebx,ecx,edx,esi,edi,d@(ssbase+esp),d@(ssbase+esp+4),d@(ssbase+esp+8),d@(ssbase+esp+12),d@(ssbase+esp+16); g', t[2]))
+        end
+    end
+    if manager.machine.time:as_double() >= last then
+        local f = io.open("calls.txt", "w")
+        for _, l in ipairs(dbg.consolelog) do f:write(l, "\\n") end
+        f:close()
+    end
+end)
+"""
+
+
+def trace_targets(spec, exp_path):
+    """'drawworld,1a2b' -> [(offset, name)]: symbols by name (the program's SYM1), or hex."""
+    names = {}
+    try:
+        sys.path.insert(0, ROOT)
+        from fmtownskit import exp as expmod
+        e = expmod.Exp(open(exp_path, 'rb').read())
+        names = {n: off for off, _, n in e.symbols}
+    except (ImportError, OSError, ValueError):
+        pass
+    out = []
+    for item in spec.split(','):
+        if item in names:
+            out.append((names[item], item))
+        else:
+            out.append((int(item, 16), item))
+    return out
+
 
 def presses(spec):
     """'T0-T1:A+Right,T2-T3:Run' -> the Lua table's entries."""
@@ -230,7 +281,7 @@ def tool(env, name):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    ap.add_argument('--machine', default='fmtmarty', help='fmtowns, fmtmarty, fmtmarty2, fmtownsux...')
+    ap.add_argument('--machine', default='fmtowns', help='fmtowns, fmtmarty, fmtmarty2, fmtownsux...')
     ap.add_argument('--at', default='5-120/5', help='seconds: a,b,c or a-b/step')
     ap.add_argument('--out', help='output directory (default build/oracle/<machine>, or dump_<machine>_<t>)')
     ap.add_argument('--dump', type=float, metavar='SECONDS',
@@ -245,6 +296,12 @@ def main():
                          'in the output directory')
     ap.add_argument('--lua', metavar='FILE', action='append', default=[],
                     help='a Lua script of your own, run after the rest')
+    ap.add_argument('--ramsize', metavar='SIZE',
+                    help="the machine's RAM, as MAME's -ramsize takes it (default: 4M on fmtowns, "
+                         "the machine's own elsewhere)")
+    ap.add_argument('--trace-calls', metavar='NAME|OFF,...',
+                    help="log each call to these functions of the program (symbols or hex offsets) "
+                         "to calls.txt in the output directory, through MAME's debugger")
     ap.add_argument('--input', metavar='T0-T1:BUTTONS,...',
                     help="player 1's pad held over spans of seconds, e.g. 25-25.2:A,30-31:Right+B "
                          '(A B Run Select Zoom Up Down Left Right)')
@@ -287,6 +344,9 @@ def main():
             f.write(SOUND_LUA % (w, w + 0xFFF))
         if a.input:
             f.write(INPUT_LUA % presses(a.input))
+        if a.trace_calls:
+            tl = trace_targets(a.trace_calls, os.path.join(ROOT, 'build', 'disc', '4DDFMT.EXP'))
+            f.write(TRACE_LUA % (', '.join('{0x%x, "%s"}' % t for t in tl), ts[-1]))
         for extra in a.lua:
             with open(extra) as g:
                 f.write('\n' + g.read())
@@ -295,9 +355,16 @@ def main():
            '-nvram_directory', os.path.join(work, 'nvram'), '-snapshot_directory', out,
            '-video', 'none', '-sound', 'none', '-nothrottle', '-skip_gameinfo',
            '-autoboot_script', lua]
+    if a.trace_calls:
+        cmd += ['-debug', '-debugger', 'none']
+    ramsize = a.ramsize or ('4M' if a.machine == 'fmtowns' else None)
+    if ramsize:
+        cmd += ['-ramsize', ramsize]
     if a.wav:
         cmd += ['-wavwrite', os.path.abspath(a.wav), '-samplerate', '48000']
-    subprocess.check_call(cmd, cwd=out if (dumping or a.sound_log) else work)
+    subprocess.check_call(cmd, cwd=out if (dumping or a.sound_log or a.trace_calls) else work)
+    if a.trace_calls:
+        print('calls in %s' % os.path.join(out, 'calls.txt'))
     if dumping:
         print('state.txt and ram.bin in %s' % out)
         return

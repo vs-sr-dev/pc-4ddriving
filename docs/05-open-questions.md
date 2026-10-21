@@ -1,6 +1,12 @@
 # 05 - Open questions
 
-1. **Why only the Marty?** On MAME's `fmtowns` the program runs and polls
+1. **Answered in session 2: memory** (`01-disc-layout.md`, `03-executables.md`).
+   The 2 MB Towns leaves the program too little; with 4 MB it runs as on the
+   Marty, with the disc's TBIOS. Kept below as session 1 wrote it. Still
+   open: why a real 2 MB Towns leaves less than a 2 MB Marty (MAME's boot
+   of each, not checked against the hardware), and whether "Marty/UX" in
+   MAME's list means the same thing.
+   Session 1: On MAME's `fmtowns` the program runs and polls
    the keyboard on a black screen (`01-disc-layout.md`). What is known:
    `fmtscreenmode(n)` asks TBIOS's graphic module (fs:[0x20] AH=01h, through
    `EGB_resolution`) for screen modes **10, 12, 13, 15** (its table at
@@ -13,11 +19,12 @@
    another layout), and the Marty ROM's does. Other candidates: `fmtspeed`
    (port 0x5EC), `twomicechk`, the machine id. **This decides what the port
    runs** (`06-attack-plan.md`).
-2. **The Marty ROM's TBIOS against the disc's**, module by module: the
-   graphic module's mode table, and what the 8 KB of wrappers do (the first
-   game's session 2 found them: `fs:[0x20]` at 0x17BE0 calling the graphic
-   module's 0xD20). With the ROM in `bios/` (`MAR_EX1.ROM` at 0x19C00), read
-   both.
+2. **The Marty ROM's TBIOS against the disc's** (read in session 2,
+   `03-executables.md`): the graphic module byte for byte the same, the mouse
+   module rewritten, and an extension at TBIOS+0x17000 wrapping the graphic
+   and mouse entries. Open: what the graphic wrapper's AH=02h path does with
+   port 0x3BB0 (*inferred*: the Marty's TV zoom; MAME maps 0x3BB0 to the
+   CMOS RAM) and what the Marty's mouse module makes of the pad.
 3. **FORRBIOS.NSD**: what each of its interrupts does (8Eh, 90h, 91h, 93h,
    96h, 97h), and whether the port answers them at the interrupt, as the
    first game's runtime answers int 93h, or recompiles the NSD (a P3 image,

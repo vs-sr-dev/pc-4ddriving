@@ -6,9 +6,11 @@ static recompilation of its 386 code to C++ on fmtownskit (a submodule at
 `fmtownskit/`; `git clone --recursive`). **BYOA**: nothing from the disc
 is in this repository; you bring your own.
 
-Status: **session 1** -- the disc identified and read, the program mapped
-by its own symbol table (1,273 functions, discovery clean), the oracle on
-MAME's FM Towns Marty reaching the title, and the plan. Nothing runs yet.
+Status: **session 2** -- the disc identified and read, the program mapped
+by its own symbol table (1,273 functions, discovery clean), and the machine
+chosen: a "Marty only" title that MAME's FM Towns runs as the Marty does once
+it has 4 MB (the 2 MB Towns runs out of memory), with the disc's own TBIOS.
+Nothing runs yet.
 
 ## The disc
 
@@ -25,11 +27,14 @@ python -m fmtownskit.exp build/disc/4DDFMT.EXP [--symbols]
 python -m fmtownskit.x86map build/disc/4DDFMT.EXP --symbol-seeds 3a650
 python -m fmtownskit.recomp.discover build/disc/4DDFMT.EXP --symbol-seeds 3a650 --report
 python tools/oracle.py --at 20-70/2 --input 22-22.3:A,28-28.3:A   # MAME, CHDMAN, FMT_ROMS
-python tools/oracle.py --machine fmtowns --dump 40                 # CPU state and RAM, for fmtownskit.mamedump
+python tools/oracle.py --machine fmtmarty --at 20-70/2 --input 22-22.3:A,28-28.3:A
+python tools/oracle.py --dump 20 --ram 0x400000                    # CPU state and RAM, for fmtownskit.mamedump
+python tools/oracle.py --at 16 --trace-calls windowdef,EGB_init    # the program's calls, by MAME's debugger
 ```
 
-The oracle runs MAME's `fmtmarty` by default; the game first asks to make a
-user disk in drive A:, and `--input` answers NO (twice).
+The oracle runs MAME's `fmtowns` with 4 MB by default (`--machine fmtmarty`
+for the Marty); the game first asks to make a user disk in drive A:, and
+`--input` answers NO (twice).
 
 ## Documents
 

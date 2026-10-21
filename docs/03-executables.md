@@ -16,9 +16,20 @@ level 1 (flat), 324,386 bytes; no relocations, no segment table.
 The header's "extra" fields are **bytes past the image, not pages**: image +
 minimum = the initial ESP, here (0x46D54 + 0x24FBC = 0x6BD10) as in the first
 game's `DUEL.EXP` (0x11F17 + 0x2009 = 0x13F20). And the maximum is honoured:
-RUN386 gives the program all the memory left -- its segment's limit is
-0x169FFF on MAME's `fmtowns` and 0x184FFF on `fmtmarty` (the dumps at 40 and
-20 s), against the first game's 0x13FFF.
+RUN386 gives the program all the memory left, and where it puts it depends
+on the RAM (the dumps; `fmtownskit.towns.PROFILES`):
+
+| Machine | Segment 0x0C/0x14: base, limit | Physical | Selector 0x40's limit | `FORRBIOS.NSD` (0x4C/0x54) |
+|---|---|---|---|---|
+| `fmtowns`, 2 MB | 0x200000, 0x169FFF | 0x49000 | 0x1F7FFF | 0x1F8000 |
+| `fmtowns`, 4 MB | **0x408000**, 0x368FFF | 0x49000 | 0x3F7FFF | 0x400000 (physical 0x3F8000) |
+| `fmtmarty`, 2 MB | 0x200000, 0x184FFF | 0x47000 | 0x1F7FFF | 0x1F8000 |
+
+The first game's segment was 0x13FFF (its own size asked), and its selector
+0x40 reached 0x1FFFFF: the NSD keeps the top 32 KB of RAM. Nothing else in
+the descriptor tables differs between 2 and 4 MB. The program never sees its
+linear base (selectors only), but its heap's size is the limit: 2 MB on the
+Towns is too little (`windowdef`, below).
 
 ### The symbol table
 
@@ -138,8 +149,53 @@ protected-mode stand-in, "for", the real-mode BIOS). On the Marty at 20 s,
 waiting at the user-disk prompt, the CPU is in it, on the program's stack,
 under `messagebox` → `mykey` → `joystate` → `keystate`.
 
+### Out of memory on the 2 MB Towns (session 2)
+
+Traced with MAME's debugger (`tools/oracle.py --trace-calls`): `fmtscreenmode(3)`
+asks TBIOS for screen mode 13 and gets it on both machines (graphic module
+AH=01h, AL=0, DX=0x0D: AH=0 back); then `windowdef` (0x25D90) makes the
+"MCGA WINDOW": `reservememory` for its pixels, then `malloc(edi*4 + 0x22)`
+for its row table -- 74 bytes. On the 2 MB Towns that `malloc` returns NULL
+and `windowdef` calls `abortmessage("windowdef - OUT OF ROW TABLE SPACE")`,
+which calls `EGB_init` again (the screen back to its default mode) and waits
+for a key: the black screen. With 4 MB, or on the Marty, `windowdef`
+succeeds three times and the game goes on.
+
 ## TBIOS.BIN, RUN386.EXE, IO.SYS
 
 The first game's, byte for byte (`01-disc-layout.md`), read in its
-`03-executables.md`. On the Marty the TBIOS that runs is the Marty ROM's
-build of the same version (the first game's session 2), not the disc's.
+`03-executables.md`. RUN386 runs `ADDDRV.EXP` before the game, under the same
+selector 0x0C (at linear 0x1BF000 on the 4 MB Towns).
+
+### The Marty's TBIOS (session 2)
+
+On the Marty the TBIOS that runs is its ROM's, not the disc's: `MAR_EX1.ROM`
+holds the same version at 0x19C00 (94,208 bytes, the disc file's size) and,
+apart, an **extension** at 0x310D0 that lands at TBIOS+0x17000 in RAM
+(0x17000-0x18637), with the entry table pointed at it: fs:[0x20] → 0x17BE0,
+fs:[0x40] → 0x18048, fs:[0x50] → 0x170BC, the originals kept at its start
+(0xD20, ...). Against the disc's `TBIOS.BIN`:
+
+* **the graphic module is the same, byte for byte** (0xD20 to the mouse
+  module: only the table's pointers differ, the later modules being 16 bytes
+  lower in the ROM);
+* the sprite, sound, "ま～くん", System and warikomi modules 16 bytes lower,
+  and then the same but for 250 bytes (*inferred*: their absolute addresses,
+  moved by those 16);
+* **the mouse module is rewritten** (3,598 bytes differ): *inferred* the
+  pad as a pointer;
+* the extension's graphic wrapper calls the module, then for AH=00h/01h
+  asks the System module (fs:[0x1C0] AH=01h) and keeps what it answers, and
+  for AH=02h does work of its own on port 0x3BB0 (*inferred*: the Marty's
+  zoom for the TV).
+
+The graphic module AH=01h (0xEF4) takes AL the page and DX the mode (1-0x12
+the display, 0x41-0x52 the writing mode); a mode of 12 and up is page 0's
+alone and picks a CRTC set-up from a table at 0x1A4F (mode 13: set-up 2),
+two layered modes one from an 11x11 table at 0x1A56 (0 refuses the pair);
+the set-up's 32 CRTC registers come from 0x1AD0, 64 bytes each.
+
+The game reads the pad through the sound module (`read_joypad` →
+`SND_joy_in_1`: fs:[0x80] AH=40h), the same on both builds; the mouse module serves `MOS_*`
+(steering with a mouse). So the disc's TBIOS draws and reads what the
+Marty's does, but for the Marty's zoom and its pad-as-mouse.
