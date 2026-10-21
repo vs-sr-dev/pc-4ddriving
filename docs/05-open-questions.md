@@ -28,7 +28,8 @@
 3. **Answered in session 3, for what the start uses** (`11-runtime.md`): the
    runtime answers int 90h, 8Eh and the CD BIOS's 53h-56h at the interrupt,
    as the oracle's trace shows FORRBIOS.NSD answering them. Still open: 91h,
-   96h, 97h; the key matrix's bytes and 53h's buffer (*inferred*: zeros).
+   96h, 97h; the key matrix's bytes (*inferred*: zeros). 53h's AL and buffer,
+   and 55h's AH=22h, read in session 4 (`12-sound.md`).
    Session 2: **FORRBIOS.NSD**: what each of its interrupts does (8Eh, 90h, 91h, 93h,
    96h, 97h), and whether the port answers them at the interrupt, as the
    first game's runtime answers int 93h, or recompiles the NSD (a P3 image,
@@ -42,8 +43,8 @@
    int 31h AX=0501h's memory.
 5. **Answered in session 3** (`09-recompiler.md`): recompiled with TBIOS
    (its table runs to 0x1E0, and warikomi's own handlers are seeds); the
-   timer A interrupt and the PICs they program not yet checked against the
-   oracle (the sound's session). Session 2: **TBIOS's two modules the first game did not call**: fs:[0x1A0]
+   timers A and B and their interrupt, checked in session 4: the same
+   rate as the oracle's, 100 Hz each (`12-sound.md`). Session 2: **TBIOS's two modules the first game did not call**: fs:[0x1A0]
    (warikomi: AH=01h-04h and 07h, from `MOS_*`, `SND_*`,
    `SND_int_timer_a_set`) and fs:[0x1C0] (System:
    AH=30h, 31h). Recompiled with TBIOS they come free; their effect on the
@@ -59,13 +60,15 @@
    pointers (`[0x44D68]`, `[0x43D40]`, `[0x43D44]`, `[0x43C30]`, the
    `_mweach_*` callbacks). The symbols seed most targets; the runtime will
    name the rest.
-7. **The user disk**: what the port does with A: (a host directory, as the
-   first game's save), and whether to answer "CREATE USER DISK?" for the
-   player. `TRACK.DAT`, `TRACK_nn.TRK` of 1,808 bytes against 1,802.
+7. **Answered in session 4** (`13-game.md`): A: is a host directory
+   (`--save`); the player answers the prompt, and once the disk is made it
+   is not asked again. Still open: `TRACK_nn.TRK` of 1,808 bytes against
+   1,802; what the oracle does with a floppy image in its drive.
 8. **`fmtspeed`**: what port 0x5EC's bit 0 does on a real Marty (MAME keeps
    it and nothing else); the game sets it in `initmodes` and `titles`.
-9. **The CD-DA**: which of the eleven tracks plays where (the oracle, with
-   `--sound-log`).
+9. **The CD-DA**: answered in part in session 4 (`12-sound.md`): track 2
+   with the logo, track 3 in the menus, none in a race. The other nine
+   (*inferred*: the race's end, the replay, the tournament) not reached.
 10. **The two releases**: HMD-222's audio tracks have other CRCs than
     HMD-222A's at the same sizes; the first release's program would show
     what the rerelease changed for the Marty. Not on hand.
@@ -73,13 +76,17 @@
 12. **The interpreter's check against unicorn on this program** was stopped
     at 8 GB of memory (`i386emu --check` over 55,000 instructions with 2
     states each): to run in slices.
-13. **The CMOS RAM**: the start reads 0x3B04 and 0x3B06 (the runtime answers 0;
+13. **Answered in session 4**: in MAME's NVRAM (`build/oracle/nvram/fmtowns/nvram`,
+    the CMOS RAM byte for byte from 0x3000) 0x3B04 and 0x3B06 hold 0, the
+    runtime's answer. Session 3: the start reads 0x3B04 and 0x3B06 (the runtime answers 0;
     MAME's come from its NVRAM, which the oracle keeps between runs under
-    `build/oracle/nvram`). What they hold, and whether a fresh NVRAM and a
-    used one give the same pictures.
+    `build/oracle/nvram`).
 14. **Ports 0x24 and 0x5ED**: read once each (MAME answers 0x24 with 0; 0x5ED
     is mapped to nothing there). Answered 0.
-15. **The mouse pointer in the corner** (`11-runtime.md`): with no movement
+15. **Answered for the port in session 4** (`13-game.md`): the window's
+    mouse moves the second port's mouse; *inferred*, the corner is the
+    pointer's first place brought into the bounds, not a drift.
+    Session 3: **The mouse pointer in the corner** (`11-runtime.md`): with no movement
     MAME's mouse reads 0 every time, and still the pointer ends at (319,
     199) on both machines -- how the program or TBIOS's mouse module gets
     there is not read. The port will want the pointer where the player's
@@ -91,3 +98,10 @@
     tight loop (740,000 calls before a traced run here was cut short, 3,753 in the oracle's
     first 30): its count follows the CPU's speed, which the runtime's clocks
     only approximate.
+18. **Strings in the oracle's uninitialized data**: at 108 s the oracle's
+    `cz`, `mz`, `szalt`, `zv` (0x46D5E on) hold text -- "FLAT_CODE",
+    "LIB - fmttmaskhpackf"... (*inferred*: the symbol table's names, from a
+    read into that memory) -- where the runtime's are zero; nothing seen
+    differs by it so far.
+19. **The gears and the gearbox**: up and down shift (read in
+    `moveeverything`), AUTO in the car screen; neither driven yet.

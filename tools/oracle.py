@@ -201,7 +201,8 @@ end)
 
 # Calls into the program's functions, logged by MAME's debugger with no window (-debug
 # -debugger none): once the program runs (CS 0x0C), a breakpoint at each function, which
-# prints the registers, the return address and four arguments from the stack, then goes on.
+# prints the registers, the return address and four arguments from the stack, 12 bytes at
+# DS:EDI (where the BIOSes' buffers are) and 16 at DS:EDX (DOS's names and buffers), then goes on.
 # The console's lines go to calls.txt as they come, frame by frame. Offsets are the program's (its code
 # segment's base added at run time, whatever the machine's RAM puts it at).
 TRACE_LUA = """local trace = {%s}
@@ -239,7 +240,7 @@ function arm(base)
     armed[base] = true
     dbg:command("printf \\"trace: armed at 0x%%x\\"," .. string.format("%%x", base))
     for _, t in ipairs(trace) do
-        cpu.debug:bpset(base + t[1], "1", string.format('printf "%%s t=%%%%d eax=%%%%x ebx=%%%%x ecx=%%%%x edx=%%%%x esi=%%%%x edi=%%%%x ret=%%%%x args %%%%x %%%%x %%%%x %%%%x",frame,eax,ebx,ecx,edx,esi,edi,d@(ssbase+esp),d@(ssbase+esp+4),d@(ssbase+esp+8),d@(ssbase+esp+12),d@(ssbase+esp+16); g', t[2]))
+        cpu.debug:bpset(base + t[1], "1", string.format('printf "%%s t=%%%%d eax=%%%%x ebx=%%%%x ecx=%%%%x edx=%%%%x esi=%%%%x edi=%%%%x ret=%%%%x args %%%%x %%%%x %%%%x %%%%x ds:edi %%%%08x %%%%08x %%%%08x ds:edx %%%%08x %%%%08x %%%%08x %%%%08x",frame,eax,ebx,ecx,edx,esi,edi,d@(ssbase+esp),d@(ssbase+esp+4),d@(ssbase+esp+8),d@(ssbase+esp+12),d@(ssbase+esp+16),d@(dsbase+edi),d@(dsbase+edi+4),d@(dsbase+edi+8),d@(dsbase+edx),d@(dsbase+edx+4),d@(dsbase+edx+8),d@(dsbase+edx+12); g', t[2]))
     end
 end
 arm(0x%x)
@@ -353,7 +354,9 @@ def main():
     out = os.path.abspath(out)              # MAME runs in another directory
     shutil.rmtree(out, ignore_errors=True)
     os.makedirs(out)
-    lua = os.path.join(work, 'oracle.lua')
+    # each run's own script (two runs at once shared one, and both ran the later one's input);
+    # the NVRAM (the CMOS RAM) is still shared, so runs at once may still differ from runs alone
+    lua = os.path.join(out, 'oracle.lua')
     ts = times(a.at)
     with open(lua, 'w') as f:
         if a.dump_write:

@@ -6,11 +6,13 @@ static recompilation of its 386 code to C++ on fmtownskit (a submodule at
 `fmtownskit/`; `git clone --recursive`). **BYOA**: nothing from the disc
 is in this repository; you bring your own.
 
-Status: **session 3** -- the game's code and TBIOS's recompiled and running
-on fmtownskit's runtime, from the first instruction through the user-disk
-prompt, Electronic Arts' logo, the title and the credits, every picture held
-against the oracle (MAME's FM Towns with 4 MB) the same, pixel for pixel.
-Silent, and not yet played: the sound and the game itself are next.
+Status: **session 4** -- the game's code and TBIOS's recompiled and running
+on fmtownskit's runtime, in a window or headless: the logo, the title, the
+menus, races, the replay menu and the track editor, with the CD's music and
+the engine's sound, held against the oracle (MAME's FM Towns with 4 MB):
+the still pictures the same pixel for pixel, a race driven the same, the
+music the same to a correlation of 0.997 and better. The user disk is a
+directory on the host (`save/a/`). Being played.
 
 ## Building
 
@@ -21,11 +23,13 @@ python -m fmtownskit.recomp --out build/game \
     --raw tbios=build/disc/TBIOS.BIN@110:20-1e0+166a7,169d0,16ab0,16ae9,16aec,16afc,16b64
 cmake -S . -B build/rt -G Ninja -DCMAKE_CXX_COMPILER=clang++
 ninja -C build/rt
-build/rt/4ddriving                                     # in a window (SDL3), or:
+build/rt/4ddriving                                     # in a window (SDL3): X accelerates, Z brakes
 build/rt/4ddriving --headless --frames 3600 --png-every 60 --input 100-118:a,400-418:a
 ```
 
-The runtime finds the disc's cue sheet in `disc/` (`--cue` for another).
+The runtime finds the disc's cue sheet in `disc/` (`--cue` for another), the
+font ROM in `bios/fmtowns/fmt_fnt.rom` (MAME's `fmtowns` set; `--font`), and
+keeps the user disk in `save/a/` (`--save`).
 `docs/09-recompiler.md` and `docs/11-runtime.md` have what each step was
 checked against.
 
@@ -49,6 +53,10 @@ python tools/oracle.py --dump 20 --ram 0x400000                    # CPU state a
 python tools/oracle.py --at 16 --trace-calls windowdef,EGB_init    # the program's calls, by MAME's debugger
 python tools/intlog.py build/oracle/.../calls.txt                   # a trace of int sites, paired into calls
 python tools/framematch.py build/oracle/cmp/fmtowns build/frames --at 16,18,20,22   # frames against the oracle
+python tools/oracle.py --at 100 --sound-log --wav build/oracle/towns.wav --input 22-22.3:A,28-28.3:A
+python tools/wavmatch.py build/oracle/towns.wav build/sound/rt.wav --at 40 --len 10     # sound against the oracle
+python tools/wavbands.py ORACLE.wav AT RUNTIME.wav AT LEN                                # band by band
+python tools/fps.py build/oracle/fps/fmtowns build/frames/fps                           # pictures a second
 ```
 
 The oracle runs MAME's `fmtowns` with 4 MB by default (`--machine fmtmarty`
@@ -60,7 +68,7 @@ for the Marty); the game first asks to make a user disk in drive A:, and
 `docs/00-sessions.md` (the log), `01-disc-layout.md`, `02-data-formats.md`,
 `03-executables.md`, `04-curiosities.md`, `05-open-questions.md`,
 `06-attack-plan.md`, `07-next-session.md`, `09-recompiler.md`,
-`10-fmtownskit.md`, `11-runtime.md`.
+`10-fmtownskit.md`, `11-runtime.md`, `12-sound.md`, `13-game.md`.
 
 ## Licence
 

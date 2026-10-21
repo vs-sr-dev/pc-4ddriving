@@ -1,63 +1,61 @@
 # 07 - Next session
 
-Where session 3 left it: the program and TBIOS recompiled and running on the
-kit's runtime, from the first instruction through the user-disk prompt,
-Electronic Arts' logo, the title and the credits, **every oracle snapshot the
-same, pixel for pixel** (`11-runtime.md`); the self-test 56,974 vectors, 0
-failures (`09-recompiler.md`). Committed: fmtownskit 959818b, this port's
-"Session 3" on it.
+Where session 4 left it: the sound held against the oracle (`12-sound.md`:
+no FM in this game; the CD-DA at correlation 0.99998 and 0.997, the
+engine's PCM with the oracle's loudness and spectrum); the game played
+headless (`13-game.md`): the menus, the opponents' cards the same pixel for
+pixel, a race driven for 28 seconds the same as the oracle's but for the
+clouds, the replay menu, the track editor opened, the user disk made on the
+host and found again. The window has the pad and the mouse.
 
-Goal: **the sound, then the game played** -- the title's music and the
-engine heard as the oracle plays them, then the menus and a race driven with
-the pad.
+Goal: **played by the user** -- the window, the eyes and the ears -- and
+the game's other roads to their ends.
 
 ## TODO
 
-### 1. The sound
+### 1. Played
 
-- [ ] The oracle's `--sound-log` and `--wav` over the logo and the title
-      (the CD-DA from sector 4500 at the logo; which track, `01-disc-layout.md`).
-- [ ] TBIOS's warikomi and the timer A interrupt (`SND_int_timer_a_set`,
-      `timerint`, `timerintb`: the game's handlers through `call eax`): the
-      YM3438's timer A raising IRQ13 as MAME's, and the handlers run at the
-      oracle's rate.
-- [ ] The engine's PCM (`STUNTS.PMB`, `SND_pcm_bank_load`) and the FM
-      (`STUNTS.SLB`): `--wav` against the oracle's, as the first game's
-      `12-sound.md`.
-- [ ] The CD BIOS's 53h buffer while a track plays (where the play is:
-      the game may loop the music by it), read on the oracle.
+- [x] The user played in the window, from the pad: everything works, a
+      race finished and a best time saved as SAM; the window showed the
+      3D a scale smaller than the menus (MAME's 800x440 frame), now the
+      picture only, at one scale.
+- [ ] The mouse in the menus and the editor (not tried by the user).
+- [ ] The gears (up and down) and the car screen's AUTO
+      (`05-open-questions.md` 19); DRIVING DEVICE in the options (the
+      mouse as the wheel: `mousesteer`, `mousedrive`).
 
-### 2. The game
+### 2. To the ends
 
-- [ ] The pad through the title and the menus (the oracle with `--input`):
-      the car selection, the track selection, a race started; frames held
-      against the oracle where the pictures are still.
-- [ ] The race: the 3D world (`drawworld`, `projectc`, the placed tables),
-      the replay, the track editor; where the computer's timing makes the
-      pictures drift, held by eye.
-- [ ] The user disk (`05-open-questions.md` 7): A: as a host directory; the
-      prompt answered YES makes one.
-- [ ] The CMOS RAM read at 0x3B04/0x3B06 (`05-open-questions.md` 13).
-- [ ] The mouse: the pointer where the host's mouse is, or hidden
-      (`05-open-questions.md` 15).
+- [ ] A race to the finish held against the oracle (the user finished one
+      and saved a best time to A:): the end screens, the CD-DA that plays
+      there (`05-open-questions.md` 9).
+- [ ] The replay: played, saved to A: and loaded back (the replay menu's
+      SAVE and LOAD, the options' LOAD REPLAY; `floadreq`'s file list by
+      4Eh/4Fh on A:).
+- [ ] The track editor: a track made, saved, raced.
+- [ ] An opponent's race (not the time trial); the tournament
+      (PRACTICE/TOURNAMENT); GRAPHIC LEVEL.
+- [ ] Held against the oracle where the pictures are still; the oracle with
+      a floppy image in A: if a road needs it (`05-open-questions.md` 7).
 
-### 3. The window
+### 3. Then
 
-- [ ] The kit's SDL3 window and the pad (it opens already: `4ddriving`
-      without `--headless`); the pace of the Marty against the Towns' 16 MHz
-      (`06-attack-plan.md`, risks).
+- [ ] At the user's word: the commit of this session (fmtownskit first).
+- [ ] Publication, when the user says it is playable: the kit and both
+      games together (`workflow-rules`).
 
 ## Tools
 
-`tools/oracle.py` (`fmtowns` with 4 MB by default; `--trace-calls` armed
-from power-on at the program's base, its log written frame by frame;
-`--dump-write`, `--dump`, `--lua tools/vramdump.lua` for VRAM and sprite
-RAM; `--input 22-22.3:A,28-28.3:A` answers NO twice). `tools/intlog.py`
-pairs a trace of every `int` site and the instruction after it into calls
-with their registers in and out. `tools/framematch.py` holds the runtime's
-frames against the oracle's snapshots (frame F is the oracle's 14.793 + F/60
-s). The runtime: `build/rt/4ddriving --headless --input 100-118:a,400-418:a`
-(NO twice), `--trace-int` (to a file: the keyboard poll is busy),
-`--vram F`. Python that holds a backslash goes in a file written whole,
-never in a shell heredoc; MSYS2's PATH puts its own Python first: run the
-tools with `C:/Python314/python.exe`.
+`tools/oracle.py` (`fmtowns` with 4 MB; `--sound-log`, `--wav`,
+`--trace-calls` -- each line with 12 bytes at DS:EDI and 16 at DS:EDX --,
+`--dump`; **one run at a time**: the NVRAM is shared). The menus on the
+oracle: `--input 22-22.3:A,28-28.3:A,62-62.3:A` reaches the main menu at
+68 s; A on GO! at 90 s starts a race, A held from 110 s drives. On the
+runtime: `--input 100-118:a,400-418:a,1980-1998:a` reaches it at frame
+2220, GO! at 2400, A from 3349 is the oracle's 110 s; **`--save` an empty
+directory for these times** (with a user disk there, no prompt, and the
+times move); presses of 6 frames move the menus one place.
+`tools/framematch.py` (frames against snapshots), `tools/wavmatch.py`,
+`tools/wavbands.py`, `tools/fps.py`. Python that holds a backslash goes in
+a file written whole, never in a shell heredoc; run the tools with
+`C:/Python314/python.exe`.

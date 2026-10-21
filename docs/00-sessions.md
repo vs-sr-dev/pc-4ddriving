@@ -101,3 +101,39 @@ fmtownskit at 9c1ccd3 (the submodule pulled at the session's end).
   14 stills the same, pixel for pixel.
 
 fmtownskit at 959818b (the session's kit commit, pulled into the submodule).
+
+## Session 4 (2026-10-21): the sound; the game played
+
+* **The sound read on the oracle** (`12-sound.md`): the FM is never keyed
+  on -- the YM3438 is the game's clock, timers A and B at 100 Hz for TBIOS's
+  warikomi and the game's `timerint`; `STUNTS.SLB` is the engines' data, not
+  voices. The PCM is the engine and the skids, the music CD-DA (the logo's
+  from sector 4,500, the menu's from 8,250, once each).
+* **Held against MAME's WAV**: the title's CD-DA at correlation 0.99998,
+  the menu's at 0.997; the engine's PCM, which follows the game's time and
+  cannot line up sample by sample, with the oracle's loudness and spectrum
+  in the intro and in a race. `--replay-sound` in the port, `tools/wavmatch.py`,
+  `tools/wavbands.py`.
+* **The CD BIOS while a track plays**, read call by call: 53h's AL and
+  buffer, 55h's AH=22h when paused already; the title-to-menu sequence of
+  calls now the oracle's.
+* **The game played** (`13-game.md`): the menus (the car, the opponents'
+  cards -- 9 snapshots of 9 the same, pixel for pixel, with the font ROM --,
+  the track, the options), **a race driven for 28 seconds the same as the
+  oracle's**, but for the clouds (seeded from the clock); the replay menu;
+  the track editor. A accelerates, B brakes.
+* **The user disk** as a host directory (`--save`): YES twice makes it, and
+  the next start asks nothing. DOS 1Ah, 2Fh, 36h, 4Eh, 4Fh in the kit.
+* **The pace**: a 3D picture every 5-6 VSYNCs in a race on both machines.
+* **The window**: the host's mouse as the second port's mouse; the picture
+  only, every mode at one scale (the user saw the 3D a scale smaller than
+  the 640x480 menus: MAME's wider frame).
+* **Played by the user** in the window, from the pad: "everything works",
+  a race finished and a best time saved to the user disk as SAM; 15-20
+  pictures a second, the Towns' own pace.
+* **A trap**: two oracle runs at once shared one Lua script (a race "with
+  up held" was A held); each run now has its own.
+* The first game on the changed kit: 3,600 frames and 150 s of sound the
+  same, byte for byte.
+
+fmtownskit at e4c5334 (the session's kit commit, pulled into the submodule).

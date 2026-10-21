@@ -21,3 +21,4 @@ bios/
 __pycache__/
 *.pyc
 PROMPT-*.md
+save/

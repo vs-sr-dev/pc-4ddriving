@@ -68,19 +68,19 @@ the top).
    self-test vectors in slices (the interpreter's check on 55,000
    instructions ran out of memory in one go). The kit's recompiler takes the
    symbols for seeds and for function names in the C++.
-3. **The runtime, headless** (session 3: to the credits, pixel for pixel; the timer A interrupt and the sound to come): the port's profile (`towns4m+nsd`); int 90h (the
+3. **The runtime, headless** (done, session 3: to the credits, pixel for pixel; the timers, session 4): the port's profile (`towns4m+nsd`); int 90h (the
    keyboard and pad as `KYB_*` call it), int 8Eh (KimG), the CD BIOS's 53h,
    55h, 56h; Phar Lap 2506h/2507h; TBIOS's warikomi and System modules'
    effects (the timer A interrupt for `SND_*`); the video modes 10, 12, 13,
    15. Frames against the oracle's (`fmtowns -ramsize 4M`): the user-disk
    prompt (22 s), Electronic Arts' logo (30-34 s), the title (46 s), the
    credits (70 s).
-4. **The sound**: the kit's RF5C68 and YM3438 (the engine's PCM, `STUNTS.PMB`,
+4. **The sound** (done, session 4, `12-sound.md`: no FM; the engine's PCM and the CD-DA held against MAME's WAV): the kit's RF5C68 and YM3438 (the engine's PCM, `STUNTS.PMB`,
    `STUNTS.SLB`) and the CD-DA loops, against the oracle's `--sound-log`.
-5. **The window and the pad**: the kit's SDL3 window; the Towns pad as the
+5. **The window and the pad** (session 4: the pad and the mouse; to be played by the user): the kit's SDL3 window; the Towns pad as the
    first game's (the game reads it through TBIOS's sound module, AH=40h);
    the steering as the game reads it.
-6. **Playable**: a race, the replay, the track editor; the user disk on the
+6. **Playable** (session 4, `13-game.md`: the menus, a race the same as the oracle's, the replay menu, the track editor opened, the user disk on the host): a race, the replay, the track editor; the user disk on the
    host; then publication at the user's word, with the kit and the first
    game.
 

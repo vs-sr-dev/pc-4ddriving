@@ -61,3 +61,20 @@ pixel for pixel; the first game regenerated (its C++ byte for byte the same)
 and run on the changed runtime: its 14 stills the same, pixel for pixel.
 
 The kit's commit **959818b**, pulled into the submodule at the session's end.
+
+## Session 4
+
+| Change | What this game asked of it |
+|---|---|
+| `runtime/towns_dos` | **DOS 4Eh/4Fh** (find a file, on the CD's ISO directories and the host's), **1Ah/2Fh** (the DTA, filled as the Towns' DOS fills it: read in the oracle's RAM), **36h** (the free space: a host drive as a 2HD floppy, *inferred*); the CD BIOS's **53h** as FORRBIOS.NSD answers while a track plays (AL 1 playing, the track and its positions in the buffer), **55h** AH=22h when paused already, 50h ending a pause |
+| `runtime/towns_disc` | `Disc::list` (a directory's entries, in the disc's order); each ISO record's date and time, as DOS packs them |
+| `runtime/towns_sound` | `Machine::cd_sector` (the sector playing, for 53h) |
+| `runtime/towns_video` | `Machine::display_area`: where the picture is in MAME's frame (the two layers' windows from the CRTC, joined) |
+| `runtime/towns_sdl` | **the picture only**, on a 640x480 canvas at one integer scale (the user saw it: this game's 320x200 modes come in an 800x440 frame, its 640x480 ones in 704x525, and the window, made for 704 pixels, showed the wider frame a scale smaller); **the host's mouse as the second port's mouse** (its movement in the frame's pixels, the two buttons), the host's pointer hidden over the window; a second gamepad is the second pad only when there is no mouse there |
+
+Checked: this game's sound against the oracle's (`12-sound.md`), its menus,
+a race, the user disk (`13-game.md`). The first game on the changed kit,
+rebuilt: its 3,600 frames and its 150 seconds of sound the same as the
+session-3 kit's, byte for byte. The recompiler is unchanged.
+
+The kit's commit **e4c5334**, pulled into the submodule at the session's end.

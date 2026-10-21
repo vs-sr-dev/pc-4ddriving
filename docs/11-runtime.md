@@ -15,8 +15,21 @@ Options (`src/main.cpp`): `--cue`, `--headless`, `--frames N`, `--png F,...`,
 `--png-every N`, `--out DIR`, `--input F-G:BUTTONS`, `--wav`, `--mute`,
 `--trace-int`, `--trace-io`, `--trace-from F`, `--vram F` (VRAM and sprite
 RAM at frame F, as the oracle's `tools/vramdump.lua` writes them),
-`--scale`, `--fullscreen`. The recompiled modules are checked against the
-disc at the start (each one's CRC32 against the file's).
+`--scale`, `--fullscreen`; since session 4 `--save DIR` (the host's floppy
+drives, A: in DIR/a: the user disk, `13-game.md`), `--font FILE` (the
+font ROM, `bios/fmtowns/fmt_fnt.rom` by default), `--ram F` (the program's
+segment at frame F, to `prog.bin`, against the oracle's `--dump`), and
+`--replay-sound LOG --seconds S --wav FILE` (the oracle's sound log through
+the runtime's chips, `12-sound.md`). The recompiled modules are checked
+against the disc at the start (each one's CRC32 against the file's).
+
+The window shows the picture only, without the border MAME's frame keeps
+(320x200 modes come in an 800x440 frame, 640x480 ones in 704x525), every
+mode at the same scale; `--crop` saves PNGs the same way (without it they
+are MAME's whole frame, for the oracle). In the window: arrows, X = A (the accelerator), Z = B (the brake), Enter =
+Run (the replay menu in a race), Right Shift or Backspace = Select; a
+gamepad's d-pad, East, South, Start, Back; the mouse as the Towns' mouse;
+F11 or Alt+Enter full screen, Tab held unpaced, Escape quits.
 
 ## Where it starts: the program's first instruction, read
 

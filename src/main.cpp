@@ -2,19 +2,29 @@
 // runtime. In a window (SDL3: the picture, the sound, the keyboard and gamepads as the Towns
 // pad), or headless, saving frames and the sound.
 //
-//     4ddriving [--cue "disc/....cue"] [--scale N] [--fullscreen] [--frames N]
+//     4ddriving [--cue "disc/....cue"] [--save DIR] [--font FILE] [--scale N] [--fullscreen] [--frames N]
 //     4ddriving --headless [--frames N] [--png F,F,...] [--png-every N] [--out DIR] [--wav FILE]
 //               [--input F-G:BUTTONS,...] [--trace-int] [--trace-io] [--trace-from F] [--vram F]
+//     4ddriving --replay-sound LOG --seconds S --wav FILE [--mute ...]
 //
+// --save: the host directory holding the floppy drives (A: is DIR/a; default save). The user
+// disk the game makes when asked (docs/13-game.md) lives there; with it there, no prompt.
+// --font: the Towns' font ROM (FMT_FNT.ROM, 256 KB; by default the one in MAME's fmtowns set,
+// bios/fmtowns/fmt_fnt.rom), which the opponents' screen reads for its text.
 // --frames: stop after N frames (headless: 600 if not given; in the window: never).
-// --png, --png-every: the frames to save (they imply --headless).
+// --png, --png-every: the frames to save (they imply --headless); MAME's whole frame, as the
+// oracle's snapshots, or with --crop the picture only, as the window shows it.
 // --wav: the sound (the FM, the PCM and the CD's audio mixed as MAME's fmtowns mixes them), 16-bit
 // stereo at 48 kHz, from the program's first instruction to the last frame.
 // --mute fm,pcm,cd: leave sources out of the mix.
 // --vram F: VRAM and sprite RAM at frame F, to vram.bin and sprram.bin in --out (as the oracle's
 // tools/vramdump.lua writes them).
+// --ram F: the program's segment at frame F (its first 0x6BD10 bytes, to the stack's top), to
+// prog.bin in --out.
 // --input: buttons held from frame F to frame G (both included), headless: up down left right a b
 // run select, joined by '+' (e.g. 433-450:a).
+// --replay-sound: no game, the oracle's sound log (tools/oracle.py --sound-log) played into the
+// runtime's chips from power-on for S seconds: the WAV lines up with MAME's own -wavwrite.
 //
 // The machine is MAME's fmtowns with 4 MB, booted from this disc (docs/06-attack-plan.md).
 // Frames are counted in VSYNCs from the program's first instruction; on the oracle that
@@ -23,6 +33,7 @@
 #ifdef FOURD_SDL
 #include "towns_sdl.h"
 #endif
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
@@ -84,13 +95,14 @@ static unsigned buttons(const std::string& s) {
 }
 
 int main(int argc, char** argv) {
-    std::string cue = "disc/4D Driving (Japan) (FM Towns Marty Rerelease).cue", out = "build/frames";
-    std::string wav;
-    long frames = -1, every = 0, trace_from = 0, vram_at = -1;
+    std::string cue = "disc/4D Driving (Japan) (FM Towns Marty Rerelease).cue", out = "build/frames", save = "save", font = "bios/fmtowns/fmt_fnt.rom";
+    std::string wav, replay;
+    long frames = -1, every = 0, trace_from = 0, vram_at = -1, ram_at = -1;
+    double seconds = 60;
     uint8_t mute = 0;
     std::set<long> at;
     std::vector<Press> presses;
-    bool trace_int = false, trace_io = false, headless = false;
+    bool trace_int = false, trace_io = false, headless = false, crop = false;
 #ifdef FOURD_SDL
     towns::SdlOptions win;
     win.title = "4D Driving";
@@ -99,6 +111,8 @@ int main(int argc, char** argv) {
         std::string a = argv[i];
         auto next = [&]() -> std::string { if (i + 1 >= argc) { std::fprintf(stderr, "%s: a value\n", a.c_str()); std::exit(2); } return argv[++i]; };
         if (a == "--cue") cue = next();
+        else if (a == "--save") save = next();
+        else if (a == "--font") font = next();
         else if (a == "--frames") frames = std::atol(next().c_str());
         else if (a == "--out") out = next();
         else if (a == "--headless") headless = true;
@@ -128,6 +142,8 @@ int main(int argc, char** argv) {
             }
         }
         else if (a == "--wav") wav = next();
+        else if (a == "--replay-sound") replay = next();
+        else if (a == "--seconds") seconds = std::atof(next().c_str());
         else if (a == "--mute") {
             std::string s = next();
             mute = (uint8_t)((s.find("fm") != std::string::npos ? 1 : 0) | (s.find("pcm") != std::string::npos ? 2 : 0)
@@ -141,6 +157,8 @@ int main(int argc, char** argv) {
         else if (a == "--trace-io") trace_io = true;
         else if (a == "--trace-from") trace_from = std::atol(next().c_str());
         else if (a == "--vram") { vram_at = std::atol(next().c_str()); headless = true; }
+        else if (a == "--ram") { ram_at = std::atol(next().c_str()); headless = true; }
+        else if (a == "--crop") crop = true;
         else { std::fprintf(stderr, "unknown option %s\n", a.c_str()); return 2; }
     }
 #ifndef FOURD_SDL
@@ -154,6 +172,13 @@ int main(int argc, char** argv) {
     std::string err;
     if (!m.disc.open(cue, err)) { std::fprintf(stderr, "%s\n", err.c_str()); return 1; }
     m.audio_mute = mute;
+    m.save_dir = save;
+    if (!replay.empty()) {
+        towns::WavWriter w;
+        if (wav.empty() || !w.open(wav)) { std::fprintf(stderr, "--replay-sound needs --wav FILE\n"); return 2; }
+        if (!towns::replay_sound_log(m, replay, seconds, w, err)) { std::fprintf(stderr, "%s\n", err.c_str()); return 1; }
+        return 0;
+    }
     std::vector<uint8_t> exe, tbios;
     if (!m.disc.file("4DDFMT.EXP", exe) || !m.disc.file("TBIOS.BIN", tbios)) {
         std::fprintf(stderr, "4DDFMT.EXP or TBIOS.BIN not on the disc\n");
@@ -170,6 +195,13 @@ int main(int argc, char** argv) {
             return 1;
         }
     }
+    if (FILE* f = std::fopen(font.c_str(), "rb")) {
+        m.font.resize(0x40000);
+        m.font.resize(std::fread(m.font.data(), 1, m.font.size(), f));
+        std::fclose(f);
+    } else {
+        std::fprintf(stderr, "no font ROM (%s): the opponents' screen will have no text\n", font.c_str());
+    }
     m.trace_int = trace_int && !trace_from;
     m.trace_io = trace_io && !trace_from;
     if (every || !at.empty()) std::filesystem::create_directories(out);
@@ -183,6 +215,14 @@ int main(int argc, char** argv) {
     m.on_vsync = [&](towns::Machine& mm) {
         long f = (long)mm.frame;
         if (trace_from && f == trace_from) { mm.trace_int = trace_int; mm.trace_io = trace_io; }
+        if (f == ram_at) {
+            // the program's segment, from its base to the stack's top (the oracle's RAM at
+            // physical 0x49000 on: tools/oracle.py --dump)
+            std::vector<uint8_t> seg(0x6BD10);
+            mm.read_block(kTowns4MNsd.prog_base, seg.data(), (uint32_t)seg.size());
+            std::filesystem::create_directories(out);
+            if (FILE* fo = std::fopen((out + "/prog.bin").c_str(), "wb")) { std::fwrite(seg.data(), 1, seg.size(), fo); std::fclose(fo); }
+        }
         if (f == vram_at) {
             std::filesystem::create_directories(out);
             for (auto [name, mem] : {std::pair<const char*, const std::vector<uint8_t>*>{"/vram.bin", &mm.vram}, {"/sprram.bin", &mm.sprram}})
@@ -192,6 +232,15 @@ int main(int argc, char** argv) {
             std::vector<uint32_t> rgb;
             int w, h;
             mm.render(rgb, w, h);
+            if (crop) {                 // the picture only, as the window shows it
+                int x, y, cw, ch;
+                mm.display_area(x, y, cw, ch);
+                std::vector<uint32_t> part((size_t)cw * ch);
+                for (int r = 0; r < ch; ++r)
+                    std::copy_n(rgb.begin() + (long)(y + r) * w + x, cw, part.begin() + (long)r * cw);
+                rgb.swap(part);
+                w = cw; h = ch;
+            }
             char name[64];
             std::snprintf(name, sizeof name, "/f%06ld.png", f);
             towns::write_png(out + name, rgb, w, h);
